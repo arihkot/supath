@@ -1,0 +1,16 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+sqlalchemy==2.0.36
+pydantic==2.10.3
+pydantic-settings==2.7.0
+python-multipart==0.0.19
+aiofiles==24.1.0
+httpx==0.28.1
+pillow==11.1.0
+ultralytics==8.3.52
+torch==2.5.1
+torchvision==0.20.1
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+geopy==2.4.1
+python-jose==3.3.0
