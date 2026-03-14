@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-const ADMIN_ONLY_PATHS = ["/detect", "/loop-closure"];
+const ADMIN_ONLY_PATHS = ["/loop-closure"];
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();

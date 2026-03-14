@@ -27,7 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 const navItems = [
   { key: "dashboard", href: "/", icon: LayoutDashboard, adminOnly: false },
   { key: "map", href: "/map", icon: Map, adminOnly: false },
-  { key: "detect", href: "/detect", icon: ScanSearch, adminOnly: true },
+  { key: "detect", href: "/detect", icon: ScanSearch, adminOnly: false },
   { key: "reports", href: "/reports", icon: FileText, adminOnly: false },
   { key: "complaints", href: "/complaints", icon: MessageSquareWarning, adminOnly: false },
   { key: "analytics", href: "/analytics", icon: BarChart3, adminOnly: false },

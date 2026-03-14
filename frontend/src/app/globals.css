@@ -124,3 +124,28 @@
   font-size: 0.875rem;
   line-height: 1.5;
 }
+
+/* Compact Leaflet attribution on mobile */
+@media (max-width: 640px) {
+  .leaflet-control-attribution {
+    max-width: 50vw;
+    font-size: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .leaflet-control-zoom {
+    margin-bottom: 1rem !important;
+    margin-right: 0.5rem !important;
+  }
+
+  .leaflet-popup-content-wrapper {
+    max-width: 200px;
+  }
+
+  .leaflet-popup-content {
+    margin: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}

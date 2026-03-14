@@ -28,6 +28,7 @@ import {
   ChevronDown,
   FileDown,
   Layers,
+  SlidersHorizontal,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -567,6 +568,9 @@ export default function MapPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
+  // Mobile layer controls toggle
+  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
+
   // Close export dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -698,7 +702,7 @@ export default function MapPage() {
   };
 
   return (
-    <div className="relative h-[calc(100vh-3.5rem)] -m-4 md:-m-6">
+    <div className="relative h-[calc(100vh-3.5rem)] -m-3 sm:-m-4 md:-m-6">
       {/* Full-bleed map */}
       <MapView
         layers={layers}
@@ -707,22 +711,22 @@ export default function MapPage() {
         onPotholesLoaded={handlePotholesLoaded}
       />
 
-      {/* Export PDF dropdown — top-left */}
-      <div className="absolute top-4 left-4 z-[1000]" ref={exportRef}>
+      {/* Export PDF dropdown — top-left, below zoom controls on mobile */}
+      <div className="absolute top-4 left-12 sm:left-4 z-[1000]" ref={exportRef}>
         <button
           onClick={() => {
             setExportOpen((o) => !o);
             setTopicMenuOpen(false);
           }}
           disabled={allPotholes.length === 0 || exportLoading}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-background/90 backdrop-blur-sm border shadow-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs font-medium bg-background/90 backdrop-blur-sm border shadow-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {exportLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Download className="w-4 h-4" />
           )}
-          Export PDF
+          <span className="hidden sm:inline">Export PDF</span>
           <ChevronDown className="w-3 h-3" />
         </button>
 
@@ -785,98 +789,113 @@ export default function MapPage() {
       </div>
 
       {/* Overlay: layer controls + legend */}
-      <div className="absolute top-4 right-4 z-[1000] w-52 space-y-2">
-        {/* Layer Controls */}
-        <Card className="shadow-md border bg-background/90 backdrop-blur-sm">
-          <CardHeader className="pb-2 pt-3 px-3">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t.map.layers}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 space-y-1.5">
-            {[
-              { key: "nh", label: t.map.nationalHighways, color: "bg-red-500" },
-              { key: "sh", label: t.map.stateHighways, color: "bg-blue-500" },
-              { key: "potholes", label: t.map.potholes, color: "bg-amber-500" },
-              { key: "heatmap", label: t.map.heatmap, color: "bg-orange-400" },
-              { key: "satellite", label: t.map.satellite, color: "bg-emerald-500" },
-              { key: "waterlogging", label: t.map.waterlogging, color: "bg-cyan-500" },
-              { key: "traffic", label: t.map.trafficAnomalies, color: "bg-purple-500" },
-            ].map((layer) => (
-              <label
-                key={layer.key}
-                className="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-muted/50 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={layers[layer.key as keyof typeof layers]}
-                  onChange={() => toggleLayer(layer.key)}
-                  className="rounded border-muted-foreground/30"
-                />
-                <span className={`w-2 h-2 rounded-full ${layer.color}`} />
-                <span className="text-xs">{layer.label}</span>
-              </label>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="absolute top-4 right-4 z-[1000] w-44 sm:w-52 space-y-2">
+        {/* Mobile toggle button — visible only on small screens when panel is closed */}
+        <button
+          onClick={() => setLayerPanelOpen((o) => !o)}
+          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium bg-background/90 backdrop-blur-sm border shadow-md hover:bg-muted transition-colors ml-auto"
+          aria-label="Toggle layer controls"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          <span>{t.map.layers}</span>
+          <ChevronDown
+            className={`w-3 h-3 transition-transform ${layerPanelOpen ? "rotate-180" : ""}`}
+          />
+        </button>
 
-        {/* Legend */}
-        <Card className="shadow-md border bg-background/90 backdrop-blur-sm">
-          <CardHeader className="pb-2 pt-3 px-3">
-            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t.map.legend}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-red-500 rounded" />
-              <span className="text-xs">{t.map.nationalHighways}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-0.5 bg-blue-500 rounded" />
-              <span className="text-xs">{t.map.stateHighways}</span>
-            </div>
-            <div className="space-y-1 pt-1">
+        {/* Layer Controls — always visible on md+, toggleable on mobile */}
+        <div className={`space-y-2 ${layerPanelOpen ? "block" : "hidden"} md:block`}>
+          <Card className="shadow-md border bg-background/90 backdrop-blur-sm">
+            <CardHeader className="pb-2 pt-3 px-3">
+              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {t.map.layers}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-3 space-y-1.5">
               {[
-                { sev: "critical", color: "bg-red-600" },
-                { sev: "high", color: "bg-orange-500" },
-                { sev: "medium", color: "bg-amber-500" },
-                { sev: "low", color: "bg-green-500" },
-              ].map((s) => (
-                <div key={s.sev} className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
-                  <span className="text-xs">
-                    {t.severity[s.sev as keyof typeof t.severity]}
-                  </span>
-                </div>
+                { key: "nh", label: t.map.nationalHighways, color: "bg-red-500" },
+                { key: "sh", label: t.map.stateHighways, color: "bg-blue-500" },
+                { key: "potholes", label: t.map.potholes, color: "bg-amber-500" },
+                { key: "heatmap", label: t.map.heatmap, color: "bg-orange-400" },
+                { key: "satellite", label: t.map.satellite, color: "bg-emerald-500" },
+                { key: "waterlogging", label: t.map.waterlogging, color: "bg-cyan-500" },
+                { key: "traffic", label: t.map.trafficAnomalies, color: "bg-purple-500" },
+              ].map((layer) => (
+                <label
+                  key={layer.key}
+                  className="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-muted/50 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={layers[layer.key as keyof typeof layers]}
+                    onChange={() => toggleLayer(layer.key)}
+                    className="rounded border-muted-foreground/30"
+                  />
+                  <span className={`w-2 h-2 rounded-full ${layer.color}`} />
+                  <span className="text-xs">{layer.label}</span>
+                </label>
               ))}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Legend */}
+          <Card className="shadow-md border bg-background/90 backdrop-blur-sm">
+            <CardHeader className="pb-2 pt-3 px-3">
+              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {t.map.legend}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 bg-red-500 rounded" />
+                <span className="text-xs">{t.map.nationalHighways}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 bg-blue-500 rounded" />
+                <span className="text-xs">{t.map.stateHighways}</span>
+              </div>
+              <div className="space-y-1 pt-1">
+                {[
+                  { sev: "critical", color: "bg-red-600" },
+                  { sev: "high", color: "bg-orange-500" },
+                  { sev: "medium", color: "bg-amber-500" },
+                  { sev: "low", color: "bg-green-500" },
+                ].map((s) => (
+                  <div key={s.sev} className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
+                    <span className="text-xs">
+                      {t.severity[s.sev as keyof typeof t.severity]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Pothole detail panel */}
+      {/* Pothole detail panel — full-width bottom sheet on mobile, side panel on md+ */}
       {selectedPothole && (
-        <div className="absolute bottom-4 left-4 z-[1000] w-[22rem] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <Card className="shadow-lg border bg-background/95 backdrop-blur-sm">
+        <div className="absolute bottom-0 left-0 right-0 md:bottom-4 md:left-4 md:right-auto z-[1000] md:w-[22rem] max-h-[60vh] md:max-h-[calc(100vh-6rem)] overflow-y-auto rounded-t-xl md:rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Card className="shadow-lg border bg-background/95 backdrop-blur-sm rounded-b-none md:rounded-b-xl">
             {/* Header */}
             <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between gap-3 border-b">
-              <div className="flex items-center gap-2.5">
-                <div className={`p-1.5 rounded-lg border ${severityBg(selectedPothole.severity)}`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`p-1.5 rounded-lg border shrink-0 ${severityBg(selectedPothole.severity)}`}>
                   <AlertTriangle className="w-4 h-4" />
                 </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold leading-tight">
+                <div className="min-w-0">
+                  <CardTitle className="text-sm font-semibold leading-tight truncate">
                     {selectedPothole.highway_ref || "Pothole"}
                   </CardTitle>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                  <p className="text-[10px] text-muted-foreground mt-0.5 font-mono truncate">
                     {selectedPothole.id.slice(0, 12)}...
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedPothole(null)}
-                className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-md p-1 transition-colors"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-md p-1 transition-colors shrink-0"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -1137,7 +1156,7 @@ export default function MapPage() {
                 )}
 
               {/* Google Maps link */}
-              <div className="border-t pt-3">
+              <div className="border-t pt-3 pb-1">
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${selectedPothole.latitude},${selectedPothole.longitude}`}
                   target="_blank"

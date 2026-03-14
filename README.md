@@ -678,11 +678,11 @@ Authentication is implemented client-side via React Context and localStorage. Th
 | Username | Password | Role | Access |
 |----------|----------|------|--------|
 | `admin` | `supath@admin` | Admin | Full access including detection and loop closure |
-| `auditor` | `supath@audit` | Auditor | Read access to all pages except detection and loop closure |
+| `auditor` | `supath@audit` | Auditor | Read access to all pages except loop closure; detection is view-only (no complaint filing) |
 
 > **Note:** There is no backend authentication enforcement. The current auth implementation is designed for demonstration purposes. For production use, implement JWT-based authentication with the `python-jose` library (already included in dependencies).
 
-Admin-only pages (`/detect`, `/loop-closure`) redirect unauthorized users to the login page.
+Admin-only pages (`/loop-closure`) redirect unauthorized users to the dashboard. The detection page (`/detect`) is accessible to auditors in view-only mode — they can upload and detect potholes but cannot file complaints.
 
 ---
 

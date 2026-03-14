@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import { useAuth } from "@/lib/auth/context";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,8 @@ interface GpsCoords {
 
 export default function DetectPage() {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -467,8 +470,8 @@ export default function DetectPage() {
                     </div>
                   ))}
 
-                  {/* Auto-file Complaint */}
-                  {result.potholes_detected > 0 && !complaintRef && (
+                  {/* Auto-file Complaint (admin only) */}
+                  {isAdmin && result.potholes_detected > 0 && !complaintRef && (
                     <Button
                       variant="outline"
                       className="w-full mt-2"
@@ -489,8 +492,8 @@ export default function DetectPage() {
                     </Button>
                   )}
 
-                  {/* Complaint filed confirmation */}
-                  {complaintRef && (
+                  {/* Complaint filed confirmation (admin only) */}
+                  {isAdmin && complaintRef && (
                     <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                       <div>

@@ -131,6 +131,21 @@ function FlyToSelected({
   return null;
 }
 
+// Zoom control positioned at bottom-right to avoid overlapping mobile controls
+function ZoomControlBottomRight() {
+  const map = useMap();
+
+  useEffect(() => {
+    const zoomControl = L.control.zoom({ position: "bottomright" });
+    zoomControl.addTo(map);
+    return () => {
+      map.removeControl(zoomControl);
+    };
+  }, [map]);
+
+  return null;
+}
+
 export default function MapView({
   layers,
   selectedPotholeId,
@@ -234,7 +249,7 @@ export default function MapView({
       center={CG_CENTER}
       zoom={CG_ZOOM}
       className="w-full h-full"
-      zoomControl={true}
+      zoomControl={false}
       doubleClickZoom={false}
     >
       {/* Base tile layer */}
@@ -242,6 +257,9 @@ export default function MapView({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      {/* Zoom control in bottom-right to avoid overlapping mobile UI */}
+      <ZoomControlBottomRight />
 
       {/* Satellite overlay */}
       <SatelliteLayer enabled={layers.satellite} />
