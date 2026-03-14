@@ -145,7 +145,7 @@ def verify_resolution(
     """
     pothole = db.query(Pothole).filter(Pothole.id == pothole_id).first()
     if not pothole:
-        return {"error": "Pothole not found"}
+        return {"error": "Pothole not found", "not_found": True}
 
     complaint = (
         db.query(Complaint)

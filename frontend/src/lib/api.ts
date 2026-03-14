@@ -17,6 +17,14 @@ import type {
   VerifyResolutionResponse,
   EscalationConfig,
   IncentiveTier,
+  StatusUpdateResponse,
+  EscalateResponse,
+  NotifyResponse,
+  PotholeUpdateRequest,
+  ComplaintUpdateRequest,
+  ContractorCreateRequest,
+  ContractorUpdateRequest,
+  HighwayUpdateRequest,
 } from "./types";
 import type { FeatureCollection } from "geojson";
 
@@ -140,8 +148,9 @@ class ApiClient {
   }
 
   // Highways
-  async getHighways() {
-    return this.request<Highway[]>("/api/highways");
+  async getHighways(): Promise<Highway[]> {
+    const data = await this.request<{ total: number; highways: Highway[] }>("/api/highways");
+    return data.highways || [];
   }
 
   async getHighwayGeoJSON() {
@@ -162,8 +171,9 @@ class ApiClient {
   }
 
   // Contractors
-  async getContractors() {
-    return this.request<Contractor[]>("/api/contractors");
+  async getContractors(): Promise<Contractor[]> {
+    const data = await this.request<{ total: number; contractors: Contractor[] }>("/api/contractors");
+    return data.contractors || [];
   }
 
   // Citizen Reports
@@ -232,6 +242,92 @@ class ApiClient {
 
   async getTotalPoints(): Promise<{ total_points: number }> {
     return this.request<{ total_points: number }>("/api/citizen-reports/total-points");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pothole Admin Actions (used from interactive map)
+  // ---------------------------------------------------------------------------
+
+  async updatePotholeStatus(id: string, status: string, resolutionNotes?: string) {
+    return this.request<StatusUpdateResponse>(`/api/potholes/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, resolution_notes: resolutionNotes }),
+    });
+  }
+
+  async escalatePothole(id: string, notes?: string) {
+    return this.request<EscalateResponse>(`/api/potholes/${id}/escalate`, {
+      method: "POST",
+      body: JSON.stringify({ notes }),
+    });
+  }
+
+  async notifyPothole(id: string, channel: string = "sms", message?: string) {
+    return this.request<NotifyResponse>(`/api/potholes/${id}/notify`, {
+      method: "POST",
+      body: JSON.stringify({ channel, message }),
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Admin CRUD mutations
+  // ---------------------------------------------------------------------------
+
+  async updatePothole(id: string, data: PotholeUpdateRequest) {
+    return this.request<Pothole>(`/api/potholes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateComplaint(id: string, data: ComplaintUpdateRequest) {
+    return this.request<Record<string, unknown>>(`/api/complaints/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createContractor(data: ContractorCreateRequest) {
+    return this.request<Contractor>("/api/contractors", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateContractor(id: string, data: ContractorUpdateRequest) {
+    return this.request<Contractor>(`/api/contractors/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateHighway(id: string, data: HighwayUpdateRequest) {
+    return this.request<Highway>(`/api/highways/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Admin DELETE actions
+  // ---------------------------------------------------------------------------
+
+  async deletePothole(id: string) {
+    return this.request<{ deleted: boolean; id: string }>(`/api/potholes/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async deleteComplaint(id: string) {
+    return this.request<{ deleted: boolean; id: string }>(`/api/complaints/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async deleteContractor(id: string) {
+    return this.request<{ deleted: boolean; id: string }>(`/api/contractors/${id}`, {
+      method: "DELETE",
+    });
   }
 }
 

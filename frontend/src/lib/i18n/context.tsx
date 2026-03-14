@@ -28,7 +28,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const saved = localStorage.getItem("supath-lang") as Language | null;
-    if (saved && (saved === "en" || saved === "hi")) {
+    const validLangs: Language[] = ["en", "hi", "bn", "te", "mr", "ta"];
+    if (saved && validLangs.includes(saved)) {
       setLanguageState(saved);
       document.documentElement.lang = saved;
     }

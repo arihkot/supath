@@ -30,6 +30,7 @@ class Pothole(Base):
     nearest_city = Column(String, nullable=True)
     district = Column(String, nullable=True)
     road_segment = Column(String, nullable=True)  # Descriptive location
+    assigned_contractor_id = Column(String, nullable=True)  # FK → contractors.id
 
     status = Column(String, default="detected")
     # detected, complaint_filed, acknowledged, in_progress, resolved, escalated
@@ -107,6 +108,7 @@ class Highway(Base):
     risk_score = Column(Float, default=0.0)  # 0-100
     pothole_count = Column(Integer, default=0)
     last_surveyed = Column(DateTime, nullable=True)
+    assigned_contractor_id = Column(String, nullable=True)  # FK → contractors.id
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

@@ -7,14 +7,49 @@ export interface Pothole {
   latitude: number;
   longitude: number;
   severity: string;
+  severity_score?: number;
+  confidence_score?: number;
   status: string;
   source: string;
   highway_ref?: string;
+  highway_type?: string;
   nearest_city?: string;
   district?: string;
   detected_at?: string;
   resolved_at?: string;
   description?: string;
+  is_resolved?: boolean;
+  image_url?: string;
+  detection_metadata?: Record<string, unknown>;
+  assigned_contractor_id?: string;
+  assigned_contractor_name?: string;
+}
+
+// Response types for pothole admin actions
+export interface StatusUpdateResponse {
+  id: string;
+  old_status: string;
+  new_status: string;
+  is_resolved: boolean;
+}
+
+export interface EscalateResponse {
+  id: string;
+  complaint_ref: string;
+  old_level?: string;
+  escalation_level: string;
+  escalation_label: string;
+  escalation_count?: number;
+  already_max: boolean;
+}
+
+export interface NotifyResponse {
+  id: string;
+  notified: boolean;
+  channel: string;
+  recipient_level: string;
+  recipient_label: string;
+  message: string;
 }
 
 export interface PotholesResponse {
@@ -28,16 +63,21 @@ export interface Complaint {
   pothole_id: string;
   portal: string;
   status: string;
+  description?: string;
+  resolution_notes?: string;
   filed_at: string;
   resolved_at?: string;
   acknowledged_at?: string;
+  in_progress_at?: string;
   escalation_count: number;
   escalation_level: string;
+  assigned_contractor_id?: string;
 }
 
 export interface ComplaintsResponse {
   complaints: Complaint[];
   total: number;
+  status_counts?: Record<string, number>;
 }
 
 export interface ComplaintCreatedResponse {
@@ -50,6 +90,7 @@ export interface Contractor {
   name: string;
   registration_id: string;
   district?: string;
+  contact_phone?: string;
   total_contracts: number;
   completed_contracts: number;
   avg_repair_days?: number;
@@ -57,14 +98,22 @@ export interface Contractor {
   road_quality_score: number;
   flagged: boolean;
   flag_reason?: string;
+  assigned_highways?: number;
+  assigned_potholes?: number;
 }
 
 export interface Highway {
   id: string;
   ref: string;
   name?: string;
-  type: string;
+  highway_type: string;
+  start_city?: string;
+  end_city?: string;
   length_km?: number;
+  risk_score?: number;
+  pothole_count?: number;
+  assigned_contractor_id?: string;
+  assigned_contractor_name?: string;
 }
 
 export interface DashboardStats {
@@ -137,8 +186,11 @@ export interface WaterloggingZone {
 }
 
 export interface EscalationSummary {
-  total: number;
-  escalation_breakdown: Record<string, { count: number; avg_days?: number }>;
+  total_complaints: number;
+  escalation_breakdown: Record<
+    string,
+    { count: number; label?: string; threshold_days?: number; avg_days?: number }
+  >;
 }
 
 export interface PendingVerification {
@@ -188,4 +240,55 @@ export interface IncentiveTier {
   badge_color: string;
   description?: string;
   sort_order: number;
+}
+
+// ---------------------------------------------------------------------------
+// Admin mutation request types
+// ---------------------------------------------------------------------------
+
+export interface PotholeUpdateRequest {
+  severity?: string;
+  assigned_contractor_id?: string | null;
+  highway_ref?: string;
+  nearest_city?: string;
+  district?: string;
+  road_segment?: string;
+}
+
+export interface ComplaintUpdateRequest {
+  status?: string;
+  description?: string;
+  resolution_notes?: string;
+  assigned_contractor_id?: string | null;
+}
+
+export interface ContractorCreateRequest {
+  name: string;
+  registration_id: string;
+  district?: string;
+  contact_phone?: string;
+  total_contracts?: number;
+  completed_contracts?: number;
+  avg_repair_days?: number;
+  reputation_score?: number;
+  road_quality_score?: number;
+  flagged?: boolean;
+  flag_reason?: string;
+}
+
+export interface ContractorUpdateRequest {
+  name?: string;
+  district?: string;
+  contact_phone?: string;
+  total_contracts?: number;
+  completed_contracts?: number;
+  avg_repair_days?: number;
+  reputation_score?: number;
+  road_quality_score?: number;
+  flagged?: boolean;
+  flag_reason?: string;
+}
+
+export interface HighwayUpdateRequest {
+  assigned_contractor_id?: string | null;
 }

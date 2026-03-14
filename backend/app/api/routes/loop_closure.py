@@ -1,6 +1,6 @@
 """Loop closure and auto-escalation API."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -87,6 +87,8 @@ def verify_pothole_resolution(data: VerifyRequest, db: Session = Depends(get_db)
         still_detected=data.still_detected,
         confidence=data.confidence,
     )
+    if result.get("not_found"):
+        raise HTTPException(status_code=404, detail=result["error"])
     return result
 
 

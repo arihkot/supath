@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy import func
@@ -13,6 +14,7 @@ from app.database import get_db
 from app.models import CitizenReport, Pothole, IncentiveTier
 from app.config import settings
 from app.schemas import IncentiveTierResponse
+from app.services.geocoding import enrich_pothole_location
 
 router = APIRouter()
 
@@ -101,21 +103,29 @@ async def submit_citizen_report(
         longitude=longitude,
         description=description,
         reporter_name=reporter_name,
-        phone_hash=str(hash(phone))[:16] if phone else None,
+        phone_hash=hashlib.sha256(phone.encode()).hexdigest()[:16] if phone else None,
         image_urls=image_urls,
         incentive_points=points,
     )
     db.add(report)
 
     # Also create a pothole record from this report
+    # Assign severity based on whether photo exists (photo = higher confidence)
+    initial_severity = "medium" if has_image else "low"
+    loc = enrich_pothole_location(latitude, longitude)
     pothole = Pothole(
         latitude=latitude,
         longitude=longitude,
-        severity="medium",  # Default until verified
+        severity=initial_severity,
+        severity_score=35.0 if has_image else 15.0,
         source="citizen_report",
         image_url=image_urls[0] if image_urls else None,
         road_segment=description,
         status="detected",
+        highway_ref=loc["highway_ref"],
+        highway_type=loc["highway_type"],
+        nearest_city=loc["nearest_city"],
+        district=loc["district"],
     )
     db.add(pothole)
     db.commit()

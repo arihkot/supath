@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { FeatureCollection, Feature } from "geojson";
@@ -21,6 +21,9 @@ interface MapViewProps {
     waterlogging: boolean;
     traffic: boolean;
   };
+  selectedPotholeId?: string | null;
+  onSelectPothole?: (pothole: Pothole | null) => void;
+  onPotholesLoaded?: (potholes: Pothole[]) => void;
 }
 
 // Satellite tile layer toggle
@@ -47,7 +50,93 @@ function SatelliteLayer({ enabled }: { enabled: boolean }) {
   return null;
 }
 
-export default function MapView({ layers }: MapViewProps) {
+// Heatmap layer using leaflet.heat plugin
+function HeatmapLayer({ potholes, enabled }: { potholes: Pothole[]; enabled: boolean }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!enabled || potholes.length === 0) return;
+
+    let layerRef: L.Layer | null = null;
+    let cancelled = false;
+
+    import("leaflet.heat").then(() => {
+      if (cancelled) return;
+
+      const severityWeight: Record<string, number> = {
+        critical: 1.0,
+        high: 0.75,
+        medium: 0.5,
+        low: 0.3,
+      };
+
+      const heatData: [number, number, number][] = potholes.map((p) => [
+        p.latitude,
+        p.longitude,
+        severityWeight[p.severity] || 0.4,
+      ]);
+
+      // @ts-expect-error leaflet.heat extends L with heatLayer
+      layerRef = L.heatLayer(heatData, {
+        radius: 30,
+        blur: 25,
+        maxZoom: 12,
+        max: 1.0,
+        minOpacity: 0.35,
+        gradient: {
+          0.0: "#ffffb2",
+          0.25: "#fecc5c",
+          0.5: "#fd8d3c",
+          0.75: "#f03b20",
+          1.0: "#bd0026",
+        },
+      });
+
+      if (layerRef) {
+        layerRef.addTo(map);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      if (layerRef) {
+        map.removeLayer(layerRef);
+      }
+    };
+  }, [enabled, potholes, map]);
+
+  return null;
+}
+
+// Fly-to component: when selectedPotholeId changes, fly to that pothole
+function FlyToSelected({
+  potholes,
+  selectedId,
+}: {
+  potholes: Pothole[];
+  selectedId: string | null | undefined;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const p = potholes.find((ph) => ph.id === selectedId);
+    if (p) {
+      map.flyTo([p.latitude, p.longitude], 18, {
+        duration: 0.8,
+      });
+    }
+  }, [selectedId, potholes, map]);
+
+  return null;
+}
+
+export default function MapView({
+  layers,
+  selectedPotholeId,
+  onSelectPothole,
+  onPotholesLoaded,
+}: MapViewProps) {
   const [highwayData, setHighwayData] = useState<FeatureCollection | null>(null);
   const [boundaryData, setBoundaryData] = useState<FeatureCollection | null>(null);
   const [potholes, setPotholes] = useState<Pothole[]>([]);
@@ -58,62 +147,72 @@ export default function MapView({ layers }: MapViewProps) {
     Promise.all([
       api.getHighwayGeoJSON().catch(() => ({ type: "FeatureCollection" as const, features: [] })),
       api.getCGBoundary().catch(() => ({ type: "FeatureCollection" as const, features: [] })),
-      api.getPotholes({ limit: 200 }).catch(() => ({ potholes: [], total: 0 })),
+      api.getPotholes({ limit: 500 }).catch(() => ({ potholes: [], total: 0 })),
       api.getWaterloggingZones().catch(() => []),
       api.getTrafficAnomalies().catch(() => []),
     ]).then(([hwData, bdData, phData, wlData, taData]) => {
       setHighwayData(hwData as FeatureCollection);
       setBoundaryData(bdData as FeatureCollection);
-      setPotholes(phData.potholes || []);
+      const loadedPotholes = phData.potholes || [];
+      setPotholes(loadedPotholes);
+      onPotholesLoaded?.(loadedPotholes);
       setWaterlogging(Array.isArray(wlData) ? wlData : []);
       setTraffic(Array.isArray(taData) ? taData : []);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const nhFeatures = highwayData?.features?.filter(
-    (f: Feature) => f.properties?.highway === "trunk" || f.properties?.ref?.startsWith("NH")
-  ) || [];
+  // Allow parent to update local pothole data after actions
+  const updatePotholeLocally = useCallback(
+    (updatedPothole: Partial<Pothole> & { id: string }) => {
+      setPotholes((prev) =>
+        prev.map((p) => (p.id === updatedPothole.id ? { ...p, ...updatedPothole } : p))
+      );
+    },
+    []
+  );
 
-  const shFeatures = highwayData?.features?.filter(
-    (f: Feature) => f.properties?.highway === "primary" || f.properties?.ref?.startsWith("SH")
-  ) || [];
+  // Expose updater via parent callback if needed (parent manages this via ref or state)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // @ts-expect-error exposing for parent interop
+      window.__supathUpdatePothole = updatePotholeLocally;
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        // @ts-expect-error cleanup
+        delete window.__supathUpdatePothole;
+      }
+    };
+  }, [updatePotholeLocally]);
+
+  const nhFeatures =
+    highwayData?.features?.filter(
+      (f: Feature) => f.properties?.highway === "trunk" || f.properties?.ref?.startsWith("NH")
+    ) || [];
+
+  const shFeatures =
+    highwayData?.features?.filter(
+      (f: Feature) => f.properties?.highway === "primary" || f.properties?.ref?.startsWith("SH")
+    ) || [];
 
   const nhCollection = { type: "FeatureCollection" as const, features: nhFeatures };
   const shCollection = { type: "FeatureCollection" as const, features: shFeatures };
 
   const severityColor = (severity: string) => {
     switch (severity) {
-      case "critical": return "#dc2626";
-      case "high": return "#ea580c";
-      case "medium": return "#d97706";
-      case "low": return "#16a34a";
-      default: return "#6b7280";
+      case "critical":
+        return "#dc2626";
+      case "high":
+        return "#ea580c";
+      case "medium":
+        return "#d97706";
+      case "low":
+        return "#16a34a";
+      default:
+        return "#6b7280";
     }
   };
-
-  const heatmapColor = (count: number) => {
-    if (count >= 11) return "#7f1d1d";
-    if (count >= 6) return "#dc2626";
-    if (count >= 3) return "#ea580c";
-    return "#f59e0b";
-  };
-
-  const heatmapCells = useMemo(() => {
-    const cells: Record<string, { lat: number; lng: number; count: number; hasCritical: boolean }> = {};
-    potholes.forEach((p) => {
-      const cellLat = Math.round(p.latitude * 10) / 10;
-      const cellLng = Math.round(p.longitude * 10) / 10;
-      const key = `${cellLat},${cellLng}`;
-      if (!cells[key]) {
-        cells[key] = { lat: cellLat, lng: cellLng, count: 0, hasCritical: false };
-      }
-      cells[key].count++;
-      if (p.severity === "critical" || p.severity === "high") {
-        cells[key].hasCritical = true;
-      }
-    });
-    return Object.values(cells);
-  }, [potholes]);
 
   const onEachHighway = useCallback((feature: Feature, layer: L.Layer) => {
     const props = feature.properties || {};
@@ -136,6 +235,7 @@ export default function MapView({ layers }: MapViewProps) {
       zoom={CG_ZOOM}
       className="w-full h-full"
       zoomControl={true}
+      doubleClickZoom={false}
     >
       {/* Base tile layer */}
       <TileLayer
@@ -145,6 +245,9 @@ export default function MapView({ layers }: MapViewProps) {
 
       {/* Satellite overlay */}
       <SatelliteLayer enabled={layers.satellite} />
+
+      {/* Fly to selected pothole */}
+      <FlyToSelected potholes={potholes} selectedId={selectedPotholeId} />
 
       {/* Chhattisgarh state boundary */}
       {boundaryData && (boundaryData.features?.length ?? 0) > 0 && (
@@ -190,63 +293,54 @@ export default function MapView({ layers }: MapViewProps) {
         />
       )}
 
-      {/* Risk Heatmap */}
-      {layers.heatmap &&
-        heatmapCells.map((cell) => (
-          <CircleMarker
-            key={`hm-${cell.lat}-${cell.lng}`}
-            center={[cell.lat, cell.lng]}
-            radius={Math.min(10 + cell.count * 4, 45)}
-            pathOptions={{
-              color: heatmapColor(cell.count),
-              fillColor: heatmapColor(cell.count),
-              fillOpacity: 0.35,
-              weight: 0,
-            }}
-          >
-            <Popup>
-              <div className="text-xs space-y-1">
-                <strong>Risk Cluster</strong>
-                <br />
-                Potholes: <b>{cell.count}</b>
-                <br />
-                {cell.hasCritical && (
-                  <span style={{ color: "#dc2626" }}>Contains Critical / High</span>
-                )}
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
+      {/* Gradient Heatmap layer */}
+      <HeatmapLayer potholes={potholes} enabled={layers.heatmap} />
 
-      {/* Pothole markers */}
+      {/* Pothole markers — interactive */}
       {layers.potholes &&
-        potholes.map((p) => (
-          <CircleMarker
-            key={p.id}
-            center={[p.latitude, p.longitude]}
-            radius={6}
-            pathOptions={{
-              color: severityColor(p.severity),
-              fillColor: severityColor(p.severity),
-              fillOpacity: 0.7,
-              weight: 1.5,
-            }}
-          >
-            <Popup>
-              <div className="text-xs space-y-1">
-                <strong>{p.highway_ref || "Unknown Highway"}</strong>
-                <br />
-                Severity: <span style={{ color: severityColor(p.severity) }}>{p.severity}</span>
-                <br />
-                Near: {p.nearest_city || "N/A"}
-                <br />
-                Source: {p.source}
-                <br />
-                Status: {p.status}
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
+        potholes.map((p) => {
+          const isSelected = selectedPotholeId === p.id;
+          return (
+            <CircleMarker
+              key={p.id}
+              center={[p.latitude, p.longitude]}
+              radius={isSelected ? 10 : 6}
+              pathOptions={{
+                color: isSelected ? "#ffffff" : severityColor(p.severity),
+                fillColor: severityColor(p.severity),
+                fillOpacity: isSelected ? 1 : 0.7,
+                weight: isSelected ? 3 : 1.5,
+              }}
+              eventHandlers={{
+                click: () => {
+                  onSelectPothole?.(p);
+                },
+                dblclick: (e) => {
+                  // Double-click to zoom to max on this hotspot
+                  const map = e.target._map;
+                  if (map) {
+                    map.flyTo([p.latitude, p.longitude], 18, { duration: 0.8 });
+                  }
+                  onSelectPothole?.(p);
+                },
+              }}
+            >
+              <Popup>
+                <div className="text-xs space-y-1">
+                  <strong>{p.highway_ref || "Unknown Highway"}</strong>
+                  <br />
+                  Severity: <span style={{ color: severityColor(p.severity) }}>{p.severity}</span>
+                  <br />
+                  Near: {p.nearest_city || "N/A"}
+                  <br />
+                  Source: {p.source}
+                  <br />
+                  Status: {p.status}
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
 
       {/* Waterlogging zones */}
       {layers.waterlogging &&
@@ -279,33 +373,35 @@ export default function MapView({ layers }: MapViewProps) {
 
       {/* Traffic anomalies */}
       {layers.traffic &&
-        traffic.filter((ta) => ta.latitude != null && ta.longitude != null).map((ta) => (
-          <CircleMarker
-            key={ta.id}
-            center={[ta.latitude!, ta.longitude!]}
-            radius={8}
-            pathOptions={{
-              color: "#7c3aed",
-              fillColor: "#7c3aed",
-              fillOpacity: 0.35,
-              weight: 2,
-            }}
-          >
-            <Popup>
-              <div className="text-xs space-y-1">
-                <strong>Traffic Anomaly</strong>
-                <br />
-                {ta.highway_ref} - {ta.location}
-                <br />
-                Avg Speed: {ta.avg_speed_kmph} km/h (expected: {ta.expected_speed_kmph})
-                <br />
-                Delay: {ta.delay_factor}x
-                <br />
-                Cause: {ta.likely_cause}
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
+        traffic
+          .filter((ta) => ta.latitude != null && ta.longitude != null)
+          .map((ta) => (
+            <CircleMarker
+              key={ta.id}
+              center={[ta.latitude!, ta.longitude!]}
+              radius={8}
+              pathOptions={{
+                color: "#7c3aed",
+                fillColor: "#7c3aed",
+                fillOpacity: 0.35,
+                weight: 2,
+              }}
+            >
+              <Popup>
+                <div className="text-xs space-y-1">
+                  <strong>Traffic Anomaly</strong>
+                  <br />
+                  {ta.highway_ref} - {ta.location}
+                  <br />
+                  Avg Speed: {ta.avg_speed_kmph} km/h (expected: {ta.expected_speed_kmph})
+                  <br />
+                  Delay: {ta.delay_factor}x
+                  <br />
+                  Cause: {ta.likely_cause}
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
     </MapContainer>
   );
 }

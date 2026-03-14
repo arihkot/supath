@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # ML Model
     YOLO_MODEL_PATH: str = "app/ml/models/best.pt"
-    DETECTION_CONFIDENCE: float = 0.30
+    DETECTION_CONFIDENCE: float = 0.25
     DETECTION_IOU: float = 0.45
 
     # Chhattisgarh geographic bounds

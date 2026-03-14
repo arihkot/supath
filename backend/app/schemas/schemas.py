@@ -34,6 +34,8 @@ class PotholeResponse(PotholeBase):
     is_resolved: bool
     detected_at: datetime
     resolved_at: Optional[datetime] = None
+    assigned_contractor_id: Optional[str] = None
+    assigned_contractor_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -80,6 +82,7 @@ class ContractorResponse(BaseModel):
     name: str
     registration_id: str
     district: Optional[str] = None
+    contact_phone: Optional[str] = None
     total_contracts: int
     completed_contracts: int
     avg_repair_days: float
@@ -87,6 +90,8 @@ class ContractorResponse(BaseModel):
     road_quality_score: float
     flagged: bool
     flag_reason: Optional[str] = None
+    assigned_highways: int = 0
+    assigned_potholes: int = 0
 
     class Config:
         from_attributes = True
@@ -105,6 +110,8 @@ class HighwayResponse(BaseModel):
     length_km: Optional[float] = None
     risk_score: float
     pothole_count: int
+    assigned_contractor_id: Optional[str] = None
+    assigned_contractor_name: Optional[str] = None
 
     class Config:
         from_attributes = True

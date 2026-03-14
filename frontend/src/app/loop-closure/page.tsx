@@ -78,12 +78,12 @@ export default function LoopClosurePage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">{lc.title}</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">{lc.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">{lc.subtitle}</p>
         </div>
-        <Button onClick={handleRunEscalation} disabled={running} className="gap-2">
+        <Button onClick={handleRunEscalation} disabled={running} className="gap-2 w-full sm:w-auto">
           {running ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
@@ -95,7 +95,7 @@ export default function LoopClosurePage() {
 
       {/* Last run result banner */}
       {lastResult && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+        <div className="flex items-start gap-3 px-3 py-3 sm:px-4 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>
             Checked <strong>{lastResult.checked}</strong> complaints — escalated{" "}
@@ -164,7 +164,7 @@ export default function LoopClosurePage() {
                 return (
                   <Card key={step.level} className="py-3">
                     <CardContent className="px-4 py-0">
-                      <p className="text-xl font-semibold">{count}</p>
+          <p className="text-lg sm:text-xl font-semibold">{count}</p>
                       <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
                         {step.label}
                       </p>
@@ -200,8 +200,9 @@ export default function LoopClosurePage() {
                   <p className="text-sm">{lc.noPending}</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-[1fr_80px_80px_90px_130px] gap-2 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground border-b">
+                <div className="overflow-x-auto">
+                <div className="space-y-2 min-w-[560px]">
+                  <div className="grid grid-cols-[1fr_80px_80px_90px_160px] gap-2 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground border-b">
                     <span>{lc.highway}</span>
                     <span>{lc.severity}</span>
                     <span>{lc.daysSince}</span>
@@ -211,7 +212,7 @@ export default function LoopClosurePage() {
                   {pending.map((p: PendingVerification) => (
                     <div
                       key={p.id}
-                      className="grid grid-cols-[1fr_80px_80px_90px_130px] gap-2 items-center px-2 py-2 rounded-md hover:bg-muted/40 text-xs"
+                      className="grid grid-cols-[1fr_80px_80px_90px_160px] gap-2 items-center px-2 py-2 rounded-md hover:bg-muted/40 text-xs"
                     >
                       <span className="font-medium truncate">
                         {p.highway_ref || "Unknown"}
@@ -232,16 +233,16 @@ export default function LoopClosurePage() {
                             })
                           : "—"}
                       </span>
-                      <div className="flex gap-1">
+                      <div className="flex flex-col gap-1">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-6 px-2 text-[10px] text-green-700 border-green-200 hover:bg-green-50"
+                          className="h-6 px-2 text-[10px] text-green-700 border-green-200 hover:bg-green-50 w-full justify-start"
                           disabled={verifying[p.id]}
                           onClick={() => handleVerify(p.id, false)}
                         >
                           {verifying[p.id] ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <Loader2 className="w-3 h-3 animate-spin mr-1" />
                           ) : (
                             <ShieldCheck className="w-3 h-3 mr-1" />
                           )}
@@ -250,7 +251,7 @@ export default function LoopClosurePage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-6 px-2 text-[10px] text-red-700 border-red-200 hover:bg-red-50"
+                          className="h-6 px-2 text-[10px] text-red-700 border-red-200 hover:bg-red-50 w-full justify-start"
                           disabled={verifying[p.id]}
                           onClick={() => handleVerify(p.id, true)}
                         >
@@ -260,6 +261,7 @@ export default function LoopClosurePage() {
                       </div>
                     </div>
                   ))}
+                </div>
                 </div>
               )}
             </CardContent>

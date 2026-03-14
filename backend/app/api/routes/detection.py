@@ -14,6 +14,7 @@ from app.models import Pothole
 from app.config import settings
 from app.services.detector import detect_potholes_in_image, extract_exif_gps
 from app.services.severity import calculate_severity
+from app.services.geocoding import enrich_pothole_location
 
 router = APIRouter()
 
@@ -75,10 +76,13 @@ async def detect_image(
     for det in detections:
         severity, score = calculate_severity(det)
 
+        pot_lat = latitude or settings.CG_CENTER_LAT + (hash(file_id) % 100) / 1000
+        pot_lng = longitude or settings.CG_CENTER_LNG + (hash(file_id) % 100) / 1000
+        loc = enrich_pothole_location(pot_lat, pot_lng)
+
         pothole = Pothole(
-            latitude=latitude or settings.CG_CENTER_LAT + (hash(file_id) % 100) / 1000,
-            longitude=longitude
-            or settings.CG_CENTER_LNG + (hash(file_id) % 100) / 1000,
+            latitude=pot_lat,
+            longitude=pot_lng,
             severity=severity,
             severity_score=score,
             confidence_score=det.get("confidence", 0.0),
@@ -86,6 +90,10 @@ async def detect_image(
             image_url=f"/uploads/images/{filename}",
             detection_metadata=det,
             status="detected",
+            highway_ref=loc["highway_ref"],
+            highway_type=loc["highway_type"],
+            nearest_city=loc["nearest_city"],
+            district=loc["district"],
         )
         db.add(pothole)
         created_potholes.append(pothole)
@@ -121,6 +129,8 @@ async def detect_image(
 @router.post("/video")
 async def detect_video(
     file: UploadFile = File(...),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
     db: Session = Depends(get_db),
 ):
     """Detect potholes in an uploaded video (frame sampling)."""
@@ -142,9 +152,43 @@ async def detect_video(
 
     results = detect_potholes_in_video(str(filepath))
 
+    # Create pothole records from video detections
+    created_ids = []
+    all_detections = results.get("detections_by_frame", [])
+
+    # Resolve location once (same coords for all frames in one video)
+    pot_lat = latitude or settings.CG_CENTER_LAT + (hash(file_id) % 100) / 1000
+    pot_lng = longitude or settings.CG_CENTER_LNG + (hash(file_id) % 100) / 1000
+    loc = enrich_pothole_location(pot_lat, pot_lng)
+
+    for frame_data in all_detections:
+        for det in frame_data.get("detections", []):
+            severity, score = calculate_severity(det)
+            pothole = Pothole(
+                latitude=pot_lat,
+                longitude=pot_lng,
+                severity=severity,
+                severity_score=score,
+                confidence_score=det.get("confidence", 0.0),
+                source="cv_detection",
+                image_url=f"/uploads/videos/{filename}",
+                detection_metadata=det,
+                status="detected",
+                highway_ref=loc["highway_ref"],
+                highway_type=loc["highway_type"],
+                nearest_city=loc["nearest_city"],
+                district=loc["district"],
+            )
+            db.add(pothole)
+            db.flush()
+            created_ids.append(pothole.id)
+
+    db.commit()
+
     return {
         "frames_processed": results.get("frames_processed", 0),
         "total_detections": results.get("total_detections", 0),
-        "detections_by_frame": results.get("detections_by_frame", []),
+        "detections_by_frame": all_detections,
         "video_url": f"/uploads/videos/{filename}",
+        "pothole_ids": created_ids,
     }

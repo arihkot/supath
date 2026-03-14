@@ -116,7 +116,7 @@ export default function CitizenReportPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold">{t.citizenReport.title}</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">{t.citizenReport.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {t.citizenReport.subtitle}
           </p>
@@ -170,13 +170,13 @@ export default function CitizenReportPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h2 className="text-xl font-semibold">{t.citizenReport.title}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">{t.citizenReport.title}</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
           {t.citizenReport.subtitle}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Form */}
         <div className="lg:col-span-2 space-y-4">
           {/* Photo Upload */}
@@ -188,7 +188,7 @@ export default function CitizenReportPage() {
             </CardHeader>
             <CardContent>
               <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                className="border-2 border-dashed rounded-lg p-4 sm:p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <input
@@ -248,6 +248,15 @@ export default function CitizenReportPage() {
                     </p>
                     <p className="text-xs text-green-600">
                       {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        title={t.common.viewOnGoogleMaps}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                      </a>
                     </p>
                   </div>
                   <Button
@@ -390,7 +399,7 @@ export default function CitizenReportPage() {
                 <p className="text-xs text-muted-foreground mb-1">
                   {t.citizenReport.yourPoints}
                 </p>
-                <p className="text-3xl font-bold text-amber-600">{totalPoints}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-amber-600">{totalPoints}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Submit reports to earn points
                 </p>

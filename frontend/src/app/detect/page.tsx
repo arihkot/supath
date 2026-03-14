@@ -70,7 +70,7 @@ export default function DetectPage() {
   const [complaintRef, setComplaintRef] = useState<string | null>(null);
   const [gpsCoords, setGpsCoords] = useState<GpsCoords | null>(null);
   const [gpsStatus, setGpsStatus] = useState<"idle" | "acquiring" | "ok" | "denied">("idle");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const handleFile = useCallback((f: File) => {
     setFile(f);
@@ -191,7 +191,7 @@ export default function DetectPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h2 className="text-xl font-semibold">{t.detect.title}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">{t.detect.title}</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
           {t.detect.subtitle}
         </p>
@@ -201,16 +201,16 @@ export default function DetectPage() {
         {/* Upload Section */}
         <div className="space-y-4">
           <Tabs defaultValue="image">
-            <TabsList>
-              <TabsTrigger value="image" className="gap-1.5">
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="image" className="gap-1.5 flex-1 sm:flex-initial">
                 <ImageIcon className="w-3.5 h-3.5" />
                 {t.detect.uploadImage}
               </TabsTrigger>
-              <TabsTrigger value="video" className="gap-1.5">
+              <TabsTrigger value="video" className="gap-1.5 flex-1 sm:flex-initial">
                 <Video className="w-3.5 h-3.5" />
                 {t.detect.uploadVideo}
               </TabsTrigger>
-              <TabsTrigger value="dashcam" className="gap-1.5">
+              <TabsTrigger value="dashcam" className="gap-1.5 flex-1 sm:flex-initial">
                 <Camera className="w-3.5 h-3.5" />
                 {t.detect.dashcamUpload}
               </TabsTrigger>
@@ -223,7 +223,6 @@ export default function DetectPage() {
                 onDrag={handleDrag}
                 onDrop={handleDrop}
                 onSelect={handleFile}
-                fileInputRef={fileInputRef}
                 label={t.detect.dragDrop}
                 formats={t.detect.supportedFormats}
               />
@@ -235,7 +234,6 @@ export default function DetectPage() {
                 onDrag={handleDrag}
                 onDrop={handleDrop}
                 onSelect={handleFile}
-                fileInputRef={fileInputRef}
                 label={t.detect.dragDrop}
                 formats="Supported: MP4, AVI, MOV"
               />
@@ -247,7 +245,6 @@ export default function DetectPage() {
                 onDrag={handleDrag}
                 onDrop={handleDrop}
                 onSelect={handleFile}
-                fileInputRef={fileInputRef}
                 label={t.detect.dragDrop}
                 formats="Supported: MP4, AVI (Dashcam footage)"
               />
@@ -522,7 +519,6 @@ function UploadZone({
   onDrag,
   onDrop,
   onSelect,
-  fileInputRef,
   label,
   formats,
 }: {
@@ -531,13 +527,13 @@ function UploadZone({
   onDrag: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onSelect: (f: File) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
   label: string;
   formats: string;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div
-      className={`mt-3 border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+      className={`mt-3 border-2 border-dashed rounded-lg p-5 sm:p-8 text-center cursor-pointer transition-colors ${
         dragActive
           ? "border-primary bg-primary/5"
           : "border-muted-foreground/20 hover:border-primary/50"
@@ -546,10 +542,10 @@ function UploadZone({
       onDragLeave={onDrag}
       onDragOver={onDrag}
       onDrop={onDrop}
-      onClick={() => fileInputRef.current?.click()}
+      onClick={() => inputRef.current?.click()}
     >
       <input
-        ref={fileInputRef}
+        ref={inputRef}
         type="file"
         accept={accept}
         className="hidden"
